@@ -13,6 +13,26 @@ Bot Discord ini dikembangkan dan dikelola langsung oleh **Ahmad Store** untuk me
 
 Semua pengaturan bot (nama store, channel ID, role ID, dll) dilakukan lewat file `config.json`. Sesuaikan isinya dengan kebutuhan store kamu sebelum bot dijalankan.
 
+## 🆕 Fitur Baru — Ticket Support / Komplain
+
+Sistem ticket untuk buyer yang butuh bantuan atau mau komplain, tanpa perlu japri admin manual.
+
+- `/ticketpanel` (Admin only) — kirim panel embed berisi tombol **🎫 Buka Ticket** ke channel yang diinginkan.
+- Saat user klik tombol, bot otomatis membuat **channel privat baru** (`ticket-username`) yang cuma bisa dilihat oleh user tersebut, role Support, dan bot.
+- Di dalam channel ticket ada tombol **🔒 Close Ticket** — hanya bisa dipakai oleh role Support atau Admin.
+- Saat ticket ditutup: bot kirim log ke channel log ticket (channel, ditutup oleh siapa), lalu channel otomatis dihapus setelah 5 detik.
+- User yang sudah punya ticket aktif tidak bisa buka ticket baru lagi (dicegah duplikat).
+
+**⚙️ Config tambahan yang wajib diisi di `config.json`:**
+```json
+{
+  "ticketCategoryId": "ID_CATEGORY_UNTUK_TICKET",
+  "ticketSupportRoleId": "ID_ROLE_SUPPORT",
+  "ticketLogChannelId": "ID_CHANNEL_LOG_TICKET"
+}
+```
+> `ticketCategoryId` harus ID **category channel** (bukan text channel), dan bot wajib punya permission **Manage Channels** di category tersebut.
+
 ## 🔧 Update Bot — Fix & Improvement
 
 ### 1. Proteksi Admin untuk `/store`
