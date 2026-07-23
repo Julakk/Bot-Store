@@ -8,7 +8,8 @@ const {
   PermissionsBitField,
   ActionRowBuilder,
   ButtonBuilder,
-  ButtonStyle
+  ButtonStyle,
+  ChannelType
 } = require("discord.js");
 
 const os = require("os");
@@ -205,7 +206,12 @@ new SlashCommandBuilder()
     
 new SlashCommandBuilder()
     .setName("payment")
-    .setDescription("Metode pembayaran Ahmad Store")
+    .setDescription("Metode pembayaran Ahmad Store"),
+
+new SlashCommandBuilder()
+  .setName("ticketpanel")
+  .setDescription("Kirim panel pembukaan ticket support")
+  .setDefaultMemberPermissions(PermissionsBitField.Flags.Administrator) // ADMIN ONLY
 ].map(cmd => cmd.toJSON());
 
 const rest = new REST({version:"10"}).setToken(config.token);
@@ -308,6 +314,139 @@ client.on("interactionCreate",async interaction=>{
         ],
         ephemeral: true
       });
+    }
+
+    /* ===== TICKET: BUKA ===== */
+    if (interaction.customId === "open_ticket") {
+      const guild = interaction.guild;
+      const channelName = `ticket-${interaction.user.username}`
+        .toLowerCase()
+        .replace(/[^a-z0-9-]/g, "")
+        .slice(0, 90);
+
+      const existing = guild.channels.cache.find(
+        c => c.name === channelName && c.parentId === config.ticketCategoryId
+      );
+      if (existing) {
+        return interaction.reply({
+          content: `❌ Kamu sudah punya ticket aktif di ${existing}`,
+          ephemeral: true
+        });
+      }
+
+      let ticketChannel;
+      try {
+        ticketChannel = await guild.channels.create({
+          name: channelName,
+          type: ChannelType.GuildText,
+          parent: config.ticketCategoryId, // wajib category channel, bukan text channel
+          permissionOverwrites: [
+            { id: guild.roles.everyone.id, deny: [PermissionsBitField.Flags.ViewChannel] },
+            {
+              id: interaction.user.id,
+              allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory
+              ]
+            },
+            {
+              id: config.ticketSupportRoleId,
+              allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory
+              ]
+            },
+            {
+              id: client.user.id,
+              allow: [
+                PermissionsBitField.Flags.ViewChannel,
+                PermissionsBitField.Flags.SendMessages,
+                PermissionsBitField.Flags.ReadMessageHistory,
+                PermissionsBitField.Flags.ManageChannels
+              ]
+            }
+          ]
+        });
+      } catch (err) {
+        console.error("❌ Gagal membuat channel ticket. Cek config.ticketCategoryId & permission bot:", err);
+        return interaction.reply({
+          content: "❌ Gagal membuat ticket. Hubungi Admin.",
+          ephemeral: true
+        });
+      }
+
+      const closeRow = new ActionRowBuilder().addComponents(
+        new ButtonBuilder()
+          .setCustomId("close_ticket")
+          .setLabel("Close Ticket")
+          .setEmoji("🔒")
+          .setStyle(ButtonStyle.Danger)
+      );
+
+      await ticketChannel.send({
+        content: `${interaction.user} <@&${config.ticketSupportRoleId}>`,
+        embeds: [
+          new EmbedBuilder()
+            .setTitle("🎫 Ticket Support — Ahmad Store")
+            .setColor("Blue")
+            .setDescription(
+              "Halo! Silakan jelaskan kendala / komplain kamu di sini.\n" +
+              "Tim support akan segera merespon.\n\n" +
+              "Klik tombol di bawah untuk menutup ticket ini kalau sudah selesai."
+            )
+            .setFooter({ text: `Dibuka oleh ${interaction.user.tag}` })
+            .setTimestamp()
+        ],
+        components: [closeRow]
+      });
+
+      return interaction.reply({
+        content: `✅ Ticket berhasil dibuat: ${ticketChannel}`,
+        ephemeral: true
+      });
+    }
+
+    /* ===== TICKET: TUTUP ===== */
+    if (interaction.customId === "close_ticket") {
+      const isSupport = interaction.member.roles.cache.has(config.ticketSupportRoleId);
+      const isAdmin = interaction.member.permissions.has(PermissionsBitField.Flags.Administrator);
+
+      if (!isSupport && !isAdmin) {
+        return interaction.reply({
+          content: "❌ Hanya tim Support / Admin yang bisa menutup ticket.",
+          ephemeral: true
+        });
+      }
+
+      await interaction.reply({
+        content: "🔒 Ticket akan ditutup dalam 5 detik..."
+      });
+
+      const logChannel = interaction.guild.channels.cache.get(config.ticketLogChannelId);
+      if (logChannel) {
+        logChannel.send({
+          embeds: [
+            new EmbedBuilder()
+              .setTitle("🔒 Ticket Ditutup")
+              .setColor("Red")
+              .addFields(
+                { name: "📌 Channel", value: `${interaction.channel.name}`, inline: true },
+                { name: "🛠️ Ditutup oleh", value: `${interaction.user.tag}`, inline: true }
+              )
+              .setTimestamp()
+          ]
+        });
+      }
+
+      setTimeout(() => {
+        interaction.channel.delete().catch(err =>
+          console.error("❌ Gagal menghapus channel ticket:", err)
+        );
+      }, 5000);
+
+      return;
     }
 
   }
@@ -616,6 +755,35 @@ if (interaction.commandName === "payment") {
     });
 
   } // ✅ tutup IF
+
+/* ===== TICKET PANEL ===== */
+
+if (interaction.commandName === "ticketpanel") {
+
+  const embed = new EmbedBuilder()
+    .setTitle("🎫 Ticket Support — Ahmad Store")
+    .setColor("Blue")
+    .setDescription(
+      "Ada kendala atau ingin komplain?\n\n" +
+      "Klik tombol di bawah untuk membuka ticket. Nanti akan dibuatkan channel privat khusus buat kamu dan tim support."
+    )
+    .setFooter({ text: "Ahmad Store • Ticket System" })
+    .setTimestamp();
+
+  const row = new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId("open_ticket")
+      .setLabel("Buka Ticket")
+      .setEmoji("🎫")
+      .setStyle(ButtonStyle.Success)
+  );
+
+  return interaction.reply({
+    embeds: [embed],
+    components: [row],
+  });
+
+} // ✅ tutup IF
 
  } catch (err) {
   console.error("❌ Error saat memproses interaction:", err);
