@@ -1,0 +1,17 @@
+{
+  "token": "BOT_TOKEN",
+  "clientId": "CLIENT_ID",
+  "guildId": "GUILD_ID",
+
+  "statusChannelId": "STATUS_ID",
+  "feedbackChannelId": "FEEDBACK_ID",
+  "testimoniChannelId": "TESTIMONI_ID",
+
+  "logChannelId": "LOG_ID",
+  "sendpanelLogChannelId": "SENDPANEL_ID",
+
+  "buyerRoleId": "BUYER_ID",
+  "sellerRoleId": "SELLER_ID",
+
+  "ownerId": "OWNER_ID"
+}
