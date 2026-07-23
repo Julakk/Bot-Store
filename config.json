@@ -6,12 +6,15 @@
   "statusChannelId": "STATUS_ID",
   "feedbackChannelId": "FEEDBACK_ID",
   "testimoniChannelId": "TESTIMONI_ID",
+  "ticketCategoryId": "ID_CATEGORY_UNTUK_TICKET",
+  "ticketLogChannelId": "ID_CHANNEL_LOG_TICKET",
 
   "logChannelId": "LOG_ID",
   "sendpanelLogChannelId": "SENDPANEL_ID",
 
   "buyerRoleId": "BUYER_ID",
   "sellerRoleId": "SELLER_ID",
+  "ticketSupportRoleId": "ID_ROLE_SUPPORT",
 
   "ownerId": "OWNER_ID"
 }
